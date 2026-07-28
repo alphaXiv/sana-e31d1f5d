@@ -1,45 +1,45 @@
 {
-  "label": "long-sequence-scaling",
+  "label": "final-temporal-32k",
   "profiles": [
     {
-      "family": "random",
-      "seeds": [101],
-      "lengths": [16384],
-      "betas": [1.03643339, 1.28155157],
-      "dimension": 64,
-      "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 8
-    },
-    {
-      "family": "random",
-      "seeds": [103],
+      "family": "temporal",
+      "seeds": [757],
       "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
+      "noise": 0.25,
+      "benchmark_repeats": 8
+    },
+    {
+      "family": "temporal",
+      "seeds": [761],
+      "lengths": [32768],
+      "betas": [1.03643339, 1.28155157],
+      "dimension": 64,
+      "block_size": 64,
+      "noise": 0.25,
       "benchmark_repeats": 6
     },
     {
-      "family": "random",
-      "seeds": [107],
-      "lengths": [65536],
+      "family": "temporal",
+      "seeds": [769],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 4
+      "noise": 0.25,
+      "benchmark_repeats": 6
     },
     {
-      "family": "random",
-      "seeds": [109],
-      "lengths": [131072],
+      "family": "temporal",
+      "seeds": [773],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 3
+      "noise": 0.25,
+      "benchmark_repeats": 6
     }
   ]
 }
