@@ -1,10 +1,10 @@
 {
-  "label": "long-sequence-scaling",
+  "label": "final-random-32k",
   "profiles": [
     {
       "family": "random",
-      "seeds": [101],
-      "lengths": [16384],
+      "seeds": [701],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
@@ -13,7 +13,7 @@
     },
     {
       "family": "random",
-      "seeds": [103],
+      "seeds": [709],
       "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
@@ -23,23 +23,23 @@
     },
     {
       "family": "random",
-      "seeds": [107],
-      "lengths": [65536],
+      "seeds": [719],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.35,
-      "benchmark_repeats": 4
+      "benchmark_repeats": 6
     },
     {
       "family": "random",
-      "seeds": [109],
-      "lengths": [131072],
+      "seeds": [727],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.35,
-      "benchmark_repeats": 3
+      "benchmark_repeats": 6
     }
   ]
 }
