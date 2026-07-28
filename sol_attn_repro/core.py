@@ -199,7 +199,10 @@ if HAS_TRITON:
                     row_max = new_max_ap
 
             for t in range(0, chunk_size):
-                if selected[t]:
+                selected_t = tl.sum(
+                    tl.where(offs_c == t, selected.to(tl.int32), 0), axis=0
+                ) > 0
+                if selected_t:
                     block_j = chunk_start + t
                     k = tl.load(
                         k_ptr
