@@ -66,11 +66,23 @@ def make_qkv(
     return q.contiguous(), k.contiguous(), v.contiguous()
 
 
-def benchmark_condition(profile: dict, seed: int, length: int, beta: float, device: torch.device) -> dict:
+def benchmark_condition(
+    profile: dict,
+    seed: int,
+    length: int,
+    beta: float,
+    device: torch.device,
+    qkv: tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None = None,
+    metadata: dict | None = None,
+) -> dict:
     dim = int(profile["dimension"])
     block_size = int(profile["block_size"])
     repeats = int(profile["benchmark_repeats"])
-    q, k, v = make_qkv(length, dim, profile["family"], seed, float(profile["noise"]), device)
+    if qkv is None:
+        q, k, v = make_qkv(length, dim, profile["family"], seed, float(profile["noise"]), device)
+    else:
+        q, k, v = qkv
+        length, dim = q.shape
 
     stats = pooled_statistics(q, k, v, block_size, beta)
     full_mask, proxy = full_proxy_mask(stats)
@@ -154,6 +166,8 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
         "moment_aux_bytes": moment_aux_bytes,
         "routing_aux_reduction": proxy_map_bytes / moment_aux_bytes,
     }
+    if metadata:
+        result.update(metadata)
     del q, k, v, dense, sol, exact, stats, full_mask, proxy
     torch.cuda.empty_cache()
     return result
@@ -188,10 +202,24 @@ def main() -> None:
         raise RuntimeError("The selected container does not provide Triton")
 
     metrics = []
+    probe_qkv = None
+    probe_metadata = None
+    if config.get("mode") == "sana_probe":
+        from .sana_probe import extract_sana_qkv
+
+        probe_qkv, probe_metadata = extract_sana_qkv(profile, device)
     for seed in profile["seeds"]:
         for length in profile["lengths"]:
             for beta in profile["betas"]:
-                result = benchmark_condition(profile, int(seed), int(length), float(beta), device)
+                result = benchmark_condition(
+                    profile,
+                    int(seed),
+                    int(length),
+                    float(beta),
+                    device,
+                    qkv=probe_qkv,
+                    metadata=probe_metadata,
+                )
                 result["rank"] = rank
                 result["label"] = config["label"]
                 metrics.append(result)
