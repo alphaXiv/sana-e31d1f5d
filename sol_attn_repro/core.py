@@ -179,22 +179,22 @@ if HAS_TRITON:
                 block_max = tl.max(exact_score, axis=1)
                 new_max = tl.maximum(row_max, block_max)
                 alpha = tl.exp(row_max - new_max)
-                probability = tl.exp(exact_score - new_max[:, None])
+                p_exact = tl.exp(exact_score - new_max[:, None])
                 v = tl.load(
                     v_ptr
                     + (block_j * block_size + offs_m[:, None]) * stride_vm
                     + offs_d[None, :] * stride_vd
                 )
-                accumulator = accumulator * alpha[:, None] + tl.dot(probability.to(v.dtype), v)
-                row_sum = row_sum * alpha + tl.sum(probability, axis=1)
+                accumulator = accumulator * alpha[:, None] + tl.dot(p_exact.to(v.dtype), v)
+                row_sum = row_sum * alpha + tl.sum(p_exact, axis=1)
                 row_max = new_max
             elif correction:
                 new_max = tl.maximum(row_max, approx_score)
                 alpha = tl.exp(row_max - new_max)
-                probability = tl.exp(approx_score - new_max)
+                p_approx = tl.exp(approx_score - new_max)
                 vc = tl.load(vc_ptr + block_j * stride_vcb + offs_d * stride_vcd)
-                accumulator = accumulator * alpha[:, None] + probability[:, None] * vc[None, :]
-                row_sum = row_sum * alpha + float(block_size) * probability
+                accumulator = accumulator * alpha[:, None] + p_approx[:, None] * vc[None, :]
+                row_sum = row_sum * alpha + float(block_size) * p_approx
                 row_max = new_max
 
         output = accumulator / row_sum[:, None]

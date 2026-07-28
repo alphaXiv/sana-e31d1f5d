@@ -1,45 +1,45 @@
 {
-  "label": "baseline-scout",
+  "label": "compiler-smoke",
   "profiles": [
     {
       "family": "random",
-      "seeds": [11, 23],
-      "lengths": [4096, 8192],
-      "betas": [0.67448975, 1.03643339, 1.28155157],
+      "seeds": [11],
+      "lengths": [4096],
+      "betas": [1.03643339],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.35,
-      "benchmark_repeats": 12
+      "benchmark_repeats": 3
     },
     {
       "family": "smooth",
-      "seeds": [17, 29],
-      "lengths": [4096, 8192],
-      "betas": [0.67448975, 1.03643339, 1.28155157],
+      "seeds": [17],
+      "lengths": [4096],
+      "betas": [1.03643339],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.20,
-      "benchmark_repeats": 12
+      "benchmark_repeats": 3
     },
     {
       "family": "temporal",
-      "seeds": [31, 43],
-      "lengths": [4096, 8192],
-      "betas": [0.67448975, 1.03643339, 1.28155157],
+      "seeds": [31],
+      "lengths": [4096],
+      "betas": [1.03643339],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.25,
-      "benchmark_repeats": 12
+      "benchmark_repeats": 3
     },
     {
       "family": "heavy_tail",
-      "seeds": [47, 59],
-      "lengths": [4096, 8192],
-      "betas": [0.67448975, 1.03643339, 1.28155157],
+      "seeds": [47],
+      "lengths": [4096],
+      "betas": [1.03643339],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.30,
-      "benchmark_repeats": 12
+      "benchmark_repeats": 3
     }
   ]
 }
