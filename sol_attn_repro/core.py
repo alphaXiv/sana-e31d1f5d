@@ -144,6 +144,7 @@ if HAS_TRITON:
         block_size: tl.constexpr,
         dim: tl.constexpr,
         chunk_size: tl.constexpr,
+        score_scale: tl.constexpr,
         correction: tl.constexpr,
     ):
         block_i = tl.program_id(0)
@@ -155,7 +156,6 @@ if HAS_TRITON:
             + (block_i * block_size + offs_m[:, None]) * stride_qm
             + offs_d[None, :] * stride_qd
         )
-        score_scale = 0.125
         q_mean = tl.sum(q.to(tl.float32), axis=0) * (score_scale / float(block_size))
         row_max = tl.full((block_size,), -float("inf"), tl.float32)
         row_sum = tl.zeros((block_size,), tl.float32)
@@ -235,19 +235,18 @@ if HAS_TRITON:
         tl.store(count_ptr + block_i, selected_count)
 
 
-def triton_attention(
+def triton_attention_precomputed(
     q: torch.Tensor,
     k: torch.Tensor,
     v: torch.Tensor,
-    beta: float,
+    stats: ThresholdStats,
     block_size: int = 64,
     correction: bool = True,
-) -> tuple[torch.Tensor, torch.Tensor, ThresholdStats]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     if not HAS_TRITON:
         raise RuntimeError("Triton is unavailable")
-    if block_size != 64 or q.shape[-1] != 64:
-        raise ValueError("The reproduction kernel fixes the paper's physical block and head dimension to 64")
-    stats = pooled_statistics(q, k, v, block_size, beta)
+    if block_size != 64 or q.shape[-1] not in {32, 64}:
+        raise ValueError("The reproduction kernel uses 64-token blocks and supports head dimensions 32/64")
     out = torch.empty_like(q)
     n_blocks = q.shape[0] // block_size
     counts = torch.empty(n_blocks, device=q.device, dtype=torch.int32)
@@ -274,10 +273,24 @@ def triton_attention(
         block_size=block_size,
         dim=q.shape[-1],
         chunk_size=32,
+        score_scale=q.shape[-1] ** -0.5,
         correction=correction,
         num_warps=8,
         num_stages=2,
     )
+    return out, counts
+
+
+def triton_attention(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    beta: float,
+    block_size: int = 64,
+    correction: bool = True,
+) -> tuple[torch.Tensor, torch.Tensor, ThresholdStats]:
+    stats = pooled_statistics(q, k, v, block_size, beta)
+    out, counts = triton_attention_precomputed(q, k, v, stats, block_size, correction)
     return out, counts, stats
 
 

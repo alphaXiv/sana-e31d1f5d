@@ -22,6 +22,7 @@ from .core import (
     pooled_statistics,
     relative_l2,
     triton_attention,
+    triton_attention_precomputed,
 )
 
 
@@ -90,6 +91,9 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
     dense_ms = cuda_time_ms(lambda: dense_attention(q, k, v), 3, repeats)
     sol_ms = cuda_time_ms(lambda: triton_attention(q, k, v, beta, block_size, True), 3, repeats)
     exact_ms = cuda_time_ms(lambda: triton_attention(q, k, v, beta, block_size, False), 3, repeats)
+    sol_kernel_ms = cuda_time_ms(
+        lambda: triton_attention_precomputed(q, k, v, stats, block_size, True), 3, repeats
+    )
     moment_route_ms = cuda_time_ms(lambda: pooled_statistics(q, k, v, block_size, beta), 3, repeats)
     full_map_route_ms = cuda_time_ms(
         lambda: full_proxy_mask(pooled_statistics(q, k, v, block_size, beta)), 3, repeats
@@ -97,6 +101,9 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
     dense_peak = incremental_peak_bytes(lambda: dense_attention(q, k, v))
     sol_peak = incremental_peak_bytes(lambda: triton_attention(q, k, v, beta, block_size, True))
     exact_peak = incremental_peak_bytes(lambda: triton_attention(q, k, v, beta, block_size, False))
+    sol_kernel_peak = incremental_peak_bytes(
+        lambda: triton_attention_precomputed(q, k, v, stats, block_size, True)
+    )
 
     n_blocks = length // block_size
     proxy_map_bytes = n_blocks * n_blocks * 4
@@ -133,12 +140,16 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
         "sol_speedup_over_dense": dense_ms / sol_ms,
         "exact_speedup_over_dense": dense_ms / exact_ms,
         "sol_overhead_vs_exact": sol_ms / exact_ms - 1.0,
+        "sol_kernel_ms": sol_kernel_ms,
+        "sol_kernel_speedup_over_dense": dense_ms / sol_kernel_ms,
         "moment_route_ms": moment_route_ms,
         "full_map_route_ms": full_map_route_ms,
         "moment_route_speedup": full_map_route_ms / moment_route_ms,
         "dense_peak_incremental_bytes": dense_peak,
         "exact_peak_incremental_bytes": exact_peak,
         "sol_peak_incremental_bytes": sol_peak,
+        "sol_kernel_peak_incremental_bytes": sol_kernel_peak,
+        "sol_kernel_memory_ratio_to_dense": sol_kernel_peak / max(dense_peak, 1),
         "proxy_map_bytes_avoided": proxy_map_bytes,
         "moment_aux_bytes": moment_aux_bytes,
         "routing_aux_reduction": proxy_map_bytes / moment_aux_bytes,
