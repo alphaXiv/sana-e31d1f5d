@@ -215,3 +215,13 @@ hf*/
 !asset/sana_wm/*.npy
 !asset/sana_wm/*.txt
 !asset/sana-wm-logo.png
+
+# Sol-Attn public reproduction artifacts.
+!reports/
+!reports/sol_attn/
+!reports/sol_attn/images/
+!reports/sol_attn/images/*.png
+!results/
+!results/sol_attn/
+!results/sol_attn/metrics.csv
+!results/sol_attn/summary.json

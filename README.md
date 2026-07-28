@@ -1,3 +1,38 @@
+# Sol-Attn claim-level reproduction
+
+[![Open in molab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/alphaXiv/sana-e31d1f5d/blob/main/notebooks/sol_attn_reproduction.py)
+
+This public artifact reproduces the routing and zeroth-order approximation claims from [Sol-Attn (arXiv:2607.24027)](https://arxiv.org/abs/2607.24027). We rebuilt the paper’s block-mean proxies, query-dependent mean/variance threshold, exact selected-block path, and proxy correction in PyTorch/Triton, then compared them with dense attention and a matched exact-only sparse control.
+
+**Assessment: partially reproduced.** At 32K tokens, correction reduced exact-only L2 error by **70.8% on random**, **94.9% on smooth**, and **92.5% on temporal** tensors while averaging **1.29–1.32×** dense end-to-end across four seeds. Requested 5/10/15/25% densities calibrated closely without storing the full proxy map; routing state was **668.7× smaller** at 128K. The paper reports up to **5.41× kernel** and **2.1–2.3× model-level** speedups; our best comparable end-to-end kernel harness result was **1.44×** at 32K/10% and **1.34×** at 128K/10%. Kernel incremental memory was **1.0000–1.0004× dense**, so this reproduction supports the routing-memory mechanism but not a total-memory advantage.
+
+The formal tests use single-head 64D tensors at 4K–128K rather than full video generation. A public SANA-600M QKV probe is included, but its released attention path is ReLU-linear rather than the paper’s softmax attention; its routing densities were not calibrated to the Gaussian targets. We did not evaluate VBench or the reported full-model speedups.
+
+- [Read the illustrated scientific report](reports/sol_attn/report.md)
+- [Explore the self-contained marimo tutorial](notebooks/sol_attn_reproduction.py)
+- [Download the 104 terminal metric rows](results/sol_attn/metrics.csv)
+- [Inspect the PyTorch/Triton implementation](sol_attn_repro/)
+
+**Compute:** Kubernetes on NVIDIA RTX PRO 6000 Blackwell GPUs; peak 16 GPUs concurrently allocated; 0.43 elapsed wall-hours from first launch through the last successful terminal run.
+
+## Experiment log
+
+Every formal node used the same inherited command. Branch links point to the exact committed code; failed setup nodes are shown only where they explain the lineage.
+
+| Branch / experiment | Purpose or change | Exact run command | Assessment / outcome | Compute |
+|---|---|---|---|---|
+| [`main`](https://github.com/alphaXiv/sana-e31d1f5d/tree/main) | Public landing page, report, notebook, data | Not run as an experiment (publication surface) | Presentation-only | — |
+| [`paper-faithful-fused-kernel-baseline`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/paper-faithful-fused-kernel-baseline) | Initial paper-faithful implementation | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | Environment wrapper failed before Python; fixed in child | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`numerically-aligned-streaming-proxy`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/numerically-aligned-streaming-proxy) | Validate moment thresholds and streaming selection | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 8K counts exactly matched; correction improved error; scalar kernel slower than dense | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`c32-instrumented-publication-candidate`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/c32-instrumented-publication-candidate) | Stream 32 proxy-correction blocks and measure precomputed-state memory | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 1.22–1.44× at 32K and 1.09–1.34× at 128K; kernel memory near dense | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`released-sana-600m-qkv-probe`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/released-sana-600m-qkv-probe) | Capture QKV from a public released SANA checkpoint | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | Routing exact, but 0–11% observed density under 10/15% targets; diagnostic only | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`final-random-seed-replication`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/final-random-seed-replication) | Four-seed 32K random replication | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 70.8% error reduction; 1.32× mean speedup | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`final-smooth-seed-replication`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/final-smooth-seed-replication) | Four-seed 32K smooth replication | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 94.9% error reduction; 1.32× mean speedup | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`final-temporal-seed-replication`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/final-temporal-seed-replication) | Four-seed 32K temporal replication | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 92.5% error reduction; 1.29× mean speedup | Kubernetes, 4× RTX PRO 6000 Blackwell |
+| [`final-long-seed-replication`](https://github.com/alphaXiv/sana-e31d1f5d/tree/orx/final-long-seed-replication) | Four-seed 64K random replication | `python -m torch.distributed.run --standalone --nproc_per_node=4 -m sol_attn_repro.run` | 70.9% error reduction; 1.12× mean speedup | Kubernetes, 4× RTX PRO 6000 Blackwell |
+
+---
+
 <p align="center" style="border-radius: 10px">
   <img src="https://huggingface.co/datasets/Efficient-Large-Model/Sana-assets/resolve/main/asset/logo.png" width="35%" alt="logo"/>
 </p>

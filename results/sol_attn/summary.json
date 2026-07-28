@@ -1,0 +1,20 @@
+{
+  "terminal_metric_rows": 104,
+  "final_replication_conditions": 32,
+  "final_error_reduction_by_family": {
+    "random": 0.7088093816864177,
+    "smooth": 0.9486983298115045,
+    "temporal": 0.9251525830363773
+  },
+  "final_32k_speedup_by_family": {
+    "random": 1.317211588549308,
+    "smooth": 1.323443835512747,
+    "temporal": 1.2901238758926206
+  },
+  "sana_observed_density_by_layer": {
+    "0": 0.095458984375,
+    "2": 0.0,
+    "6": 0.015625,
+    "12": 0.03125
+  }
+}
