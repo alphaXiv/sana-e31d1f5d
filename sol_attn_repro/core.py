@@ -143,11 +143,13 @@ if HAS_TRITON:
         n_blocks: tl.constexpr,
         block_size: tl.constexpr,
         dim: tl.constexpr,
+        chunk_size: tl.constexpr,
         correction: tl.constexpr,
     ):
         block_i = tl.program_id(0)
         offs_m = tl.arange(0, block_size)
         offs_d = tl.arange(0, dim)
+        offs_c = tl.arange(0, chunk_size)
         q = tl.load(
             q_ptr
             + (block_i * block_size + offs_m[:, None]) * stride_qm
@@ -161,42 +163,64 @@ if HAS_TRITON:
         selected_count = 0
         tau = tl.load(tau_ptr + block_i)
 
-        for block_j in range(0, n_blocks):
-            kc = tl.load(kc_ptr + block_j * stride_kcb + offs_d * stride_kcd)
-            approx_score = (
-                tl.sum(q.to(tl.float32) * kc[None, :].to(tl.float32), axis=1) * score_scale
+        for chunk_start in range(0, n_blocks, chunk_size):
+            block_ids = chunk_start + offs_c
+            valid = block_ids < n_blocks
+            kc = tl.load(
+                kc_ptr + block_ids[:, None] * stride_kcb + offs_d[None, :] * stride_kcd,
+                mask=valid[:, None],
+                other=0.0,
             )
-            proxy = tl.sum(q_mean * kc.to(tl.float32), axis=0)
-            selected = proxy > tau
-            selected_count += selected.to(tl.int32)
+            score_tile = tl.dot(q, tl.trans(kc)) * score_scale
+            proxy = tl.sum(q_mean[None, :] * kc.to(tl.float32), axis=1)
+            selected = (proxy > tau) & valid
+            selected_count += tl.sum(selected.to(tl.int32), axis=0)
 
-            if selected:
-                k = tl.load(
-                    k_ptr
-                    + (block_j * block_size + offs_m[:, None]) * stride_km
-                    + offs_d[None, :] * stride_kd
-                )
-                exact_score = tl.dot(q, tl.trans(k)) * score_scale
-                block_max = tl.max(exact_score, axis=1)
-                new_max = tl.maximum(row_max, block_max)
-                alpha = tl.exp(row_max - new_max)
-                p_exact = tl.exp(exact_score - new_max[:, None])
-                v = tl.load(
-                    v_ptr
-                    + (block_j * block_size + offs_m[:, None]) * stride_vm
-                    + offs_d[None, :] * stride_vd
-                )
-                accumulator = accumulator * alpha[:, None] + tl.dot(p_exact.to(v.dtype), v)
-                row_sum = row_sum * alpha + tl.sum(p_exact, axis=1)
-                row_max = new_max
-            elif correction:
-                new_max = tl.maximum(row_max, approx_score)
-                alpha = tl.exp(row_max - new_max)
-                p_approx = tl.exp(approx_score - new_max)
-                vc = tl.load(vc_ptr + block_j * stride_vcb + offs_d * stride_vcd)
-                accumulator = accumulator * alpha[:, None] + p_approx[:, None] * vc[None, :]
-                row_sum = row_sum * alpha + float(block_size) * p_approx
-                row_max = new_max
+            if correction:
+                approx_score = tl.where(selected[None, :], -float("inf"), score_tile)
+                approx_score = tl.where(valid[None, :], approx_score, -float("inf"))
+                has_approx = tl.sum((valid & (selected == 0)).to(tl.int32), axis=0) > 0
+                if has_approx:
+                    approx_max = tl.max(approx_score, axis=1)
+                    new_max_ap = tl.maximum(row_max, approx_max)
+                    alpha_ap = tl.exp(row_max - new_max_ap)
+                    p_approx = tl.exp(approx_score - new_max_ap[:, None])
+                    vc = tl.load(
+                        vc_ptr + block_ids[:, None] * stride_vcb + offs_d[None, :] * stride_vcd,
+                        mask=valid[:, None],
+                        other=0.0,
+                    )
+                    accumulator = accumulator * alpha_ap[:, None] + tl.dot(
+                        p_approx.to(vc.dtype), vc
+                    )
+                    row_sum = row_sum * alpha_ap + float(block_size) * tl.sum(
+                        p_approx, axis=1
+                    )
+                    row_max = new_max_ap
+
+            for t in range(0, chunk_size):
+                if selected[t]:
+                    block_j = chunk_start + t
+                    k = tl.load(
+                        k_ptr
+                        + (block_j * block_size + offs_m[:, None]) * stride_km
+                        + offs_d[None, :] * stride_kd
+                    )
+                    exact_score = tl.dot(q, tl.trans(k)) * score_scale
+                    exact_max = tl.max(exact_score, axis=1)
+                    new_max_ex = tl.maximum(row_max, exact_max)
+                    alpha_ex = tl.exp(row_max - new_max_ex)
+                    p_exact = tl.exp(exact_score - new_max_ex[:, None])
+                    v = tl.load(
+                        v_ptr
+                        + (block_j * block_size + offs_m[:, None]) * stride_vm
+                        + offs_d[None, :] * stride_vd
+                    )
+                    accumulator = accumulator * alpha_ex[:, None] + tl.dot(
+                        p_exact.to(v.dtype), v
+                    )
+                    row_sum = row_sum * alpha_ex + tl.sum(p_exact, axis=1)
+                    row_max = new_max_ex
 
         output = accumulator / row_sum[:, None]
         tl.store(
@@ -246,6 +270,7 @@ def triton_attention(
         n_blocks=n_blocks,
         block_size=block_size,
         dim=q.shape[-1],
+        chunk_size=16,
         correction=correction,
         num_warps=8,
         num_stages=2,
