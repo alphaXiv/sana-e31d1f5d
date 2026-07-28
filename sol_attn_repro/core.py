@@ -273,7 +273,7 @@ def triton_attention(
         n_blocks=n_blocks,
         block_size=block_size,
         dim=q.shape[-1],
-        chunk_size=16,
+        chunk_size=8,
         correction=correction,
         num_warps=8,
         num_stages=2,
