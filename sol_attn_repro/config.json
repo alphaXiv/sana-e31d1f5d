@@ -1,45 +1,45 @@
 {
-  "label": "long-sequence-scaling",
+  "label": "final-smooth-32k",
   "profiles": [
     {
-      "family": "random",
-      "seeds": [101],
-      "lengths": [16384],
-      "betas": [1.03643339, 1.28155157],
-      "dimension": 64,
-      "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 8
-    },
-    {
-      "family": "random",
-      "seeds": [103],
+      "family": "smooth",
+      "seeds": [733],
       "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
+      "noise": 0.20,
+      "benchmark_repeats": 8
+    },
+    {
+      "family": "smooth",
+      "seeds": [739],
+      "lengths": [32768],
+      "betas": [1.03643339, 1.28155157],
+      "dimension": 64,
+      "block_size": 64,
+      "noise": 0.20,
       "benchmark_repeats": 6
     },
     {
-      "family": "random",
-      "seeds": [107],
-      "lengths": [65536],
+      "family": "smooth",
+      "seeds": [743],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 4
+      "noise": 0.20,
+      "benchmark_repeats": 6
     },
     {
-      "family": "random",
-      "seeds": [109],
-      "lengths": [131072],
+      "family": "smooth",
+      "seeds": [751],
+      "lengths": [32768],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 3
+      "noise": 0.20,
+      "benchmark_repeats": 6
     }
   ]
 }
