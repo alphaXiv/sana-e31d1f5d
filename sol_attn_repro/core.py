@@ -153,7 +153,7 @@ if HAS_TRITON:
             + (block_i * block_size + offs_m[:, None]) * stride_qm
             + offs_d[None, :] * stride_qd
         )
-        q = q * (1.0 / tl.sqrt(float(dim)))
+        score_scale = 0.125
         row_max = tl.full((block_size,), -float("inf"), tl.float32)
         row_sum = tl.zeros((block_size,), tl.float32)
         accumulator = tl.zeros((block_size, dim), tl.float32)
@@ -162,7 +162,9 @@ if HAS_TRITON:
 
         for block_j in range(0, n_blocks):
             kc = tl.load(kc_ptr + block_j * stride_kcb + offs_d * stride_kcd)
-            approx_score = tl.sum(q.to(tl.float32) * kc[None, :].to(tl.float32), axis=1)
+            approx_score = (
+                tl.sum(q.to(tl.float32) * kc[None, :].to(tl.float32), axis=1) * score_scale
+            )
             proxy = tl.sum(approx_score, axis=0) / float(block_size)
             selected = proxy > tau
             selected_count += selected.to(tl.int32)
@@ -173,7 +175,7 @@ if HAS_TRITON:
                     + (block_j * block_size + offs_m[:, None]) * stride_km
                     + offs_d[None, :] * stride_kd
                 )
-                exact_score = tl.dot(q, tl.trans(k))
+                exact_score = tl.dot(q, tl.trans(k)) * score_scale
                 block_max = tl.max(exact_score, axis=1)
                 new_max = tl.maximum(row_max, block_max)
                 alpha = tl.exp(row_max - new_max)
