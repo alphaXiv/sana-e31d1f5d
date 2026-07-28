@@ -1,29 +1,9 @@
 {
-  "label": "long-sequence-scaling",
+  "label": "final-random-64k",
   "profiles": [
     {
       "family": "random",
-      "seeds": [101],
-      "lengths": [16384],
-      "betas": [1.03643339, 1.28155157],
-      "dimension": 64,
-      "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 8
-    },
-    {
-      "family": "random",
-      "seeds": [103],
-      "lengths": [32768],
-      "betas": [1.03643339, 1.28155157],
-      "dimension": 64,
-      "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 6
-    },
-    {
-      "family": "random",
-      "seeds": [107],
+      "seeds": [787],
       "lengths": [65536],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
@@ -33,13 +13,33 @@
     },
     {
       "family": "random",
-      "seeds": [109],
-      "lengths": [131072],
+      "seeds": [797],
+      "lengths": [65536],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
       "noise": 0.35,
-      "benchmark_repeats": 3
+      "benchmark_repeats": 4
+    },
+    {
+      "family": "random",
+      "seeds": [809],
+      "lengths": [65536],
+      "betas": [1.03643339, 1.28155157],
+      "dimension": 64,
+      "block_size": 64,
+      "noise": 0.35,
+      "benchmark_repeats": 4
+    },
+    {
+      "family": "random",
+      "seeds": [811],
+      "lengths": [65536],
+      "betas": [1.03643339, 1.28155157],
+      "dimension": 64,
+      "block_size": 64,
+      "noise": 0.35,
+      "benchmark_repeats": 4
     }
   ]
 }
