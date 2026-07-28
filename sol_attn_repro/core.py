@@ -45,7 +45,7 @@ def pooled_statistics(
     vb = v.reshape(n_blocks, block_size, v.shape[-1])
     # The paper writes the usual attention scale in Eq. (1); applying it to Q
     # keeps proxy, exact, and approximate logits in the same units.
-    q_mean = qb.mean(dim=1) * (q.shape[-1] ** -0.5)
+    q_mean = qb.float().mean(dim=1) * (q.shape[-1] ** -0.5)
     k_mean = kb.mean(dim=1)
     v_sum = vb.sum(dim=1)
     key_first = k_mean.mean(dim=0)
@@ -154,6 +154,7 @@ if HAS_TRITON:
             + offs_d[None, :] * stride_qd
         )
         score_scale = 0.125
+        q_mean = tl.sum(q.to(tl.float32), axis=0) * (score_scale / float(block_size))
         row_max = tl.full((block_size,), -float("inf"), tl.float32)
         row_sum = tl.zeros((block_size,), tl.float32)
         accumulator = tl.zeros((block_size, dim), tl.float32)
@@ -165,7 +166,7 @@ if HAS_TRITON:
             approx_score = (
                 tl.sum(q.to(tl.float32) * kc[None, :].to(tl.float32), axis=1) * score_scale
             )
-            proxy = tl.sum(approx_score, axis=0) / float(block_size)
+            proxy = tl.sum(q_mean * kc.to(tl.float32), axis=0)
             selected = proxy > tau
             selected_count += selected.to(tl.int32)
 

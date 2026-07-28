@@ -90,6 +90,10 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
     dense_ms = cuda_time_ms(lambda: dense_attention(q, k, v), 3, repeats)
     sol_ms = cuda_time_ms(lambda: triton_attention(q, k, v, beta, block_size, True), 3, repeats)
     exact_ms = cuda_time_ms(lambda: triton_attention(q, k, v, beta, block_size, False), 3, repeats)
+    moment_route_ms = cuda_time_ms(lambda: pooled_statistics(q, k, v, block_size, beta), 3, repeats)
+    full_map_route_ms = cuda_time_ms(
+        lambda: full_proxy_mask(pooled_statistics(q, k, v, block_size, beta)), 3, repeats
+    )
     dense_peak = incremental_peak_bytes(lambda: dense_attention(q, k, v))
     sol_peak = incremental_peak_bytes(lambda: triton_attention(q, k, v, beta, block_size, True))
     exact_peak = incremental_peak_bytes(lambda: triton_attention(q, k, v, beta, block_size, False))
@@ -111,6 +115,13 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
         "density_p90": float(torch.quantile(density_by_query, 0.9)),
         "threshold_moment_max_abs_error": threshold_max_abs,
         "stream_count_matches_full_map": bool(torch.equal(counts, full_mask.sum(1).to(torch.int32))),
+        "stream_count_match_fraction": float(
+            (counts == full_mask.sum(1).to(torch.int32)).float().mean()
+        ),
+        "stream_count_max_abs_difference": int(
+            (counts - full_mask.sum(1).to(torch.int32)).abs().max()
+        ),
+        "stream_density_mean": float(counts.float().mean() / n_blocks),
         "exact_relative_l2": relative_l2(exact, dense),
         "sol_relative_l2": relative_l2(sol, dense),
         "error_reduction_fraction": 1.0 - relative_l2(sol, dense) / max(relative_l2(exact, dense), 1e-12),
@@ -122,6 +133,9 @@ def benchmark_condition(profile: dict, seed: int, length: int, beta: float, devi
         "sol_speedup_over_dense": dense_ms / sol_ms,
         "exact_speedup_over_dense": dense_ms / exact_ms,
         "sol_overhead_vs_exact": sol_ms / exact_ms - 1.0,
+        "moment_route_ms": moment_route_ms,
+        "full_map_route_ms": full_map_route_ms,
+        "moment_route_speedup": full_map_route_ms / moment_route_ms,
         "dense_peak_incremental_bytes": dense_peak,
         "exact_peak_incremental_bytes": exact_peak,
         "sol_peak_incremental_bytes": sol_peak,
