@@ -1,45 +1,58 @@
 {
-  "label": "long-sequence-scaling",
+  "label": "released-sana-600m-qkv",
+  "mode": "sana_probe",
   "profiles": [
     {
-      "family": "random",
-      "seeds": [101],
-      "lengths": [16384],
+      "family": "sana",
+      "layer": 0,
+      "head": 3,
+      "spatial": 64,
+      "seeds": [601],
+      "lengths": [4096],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
+      "noise": 0.0,
       "benchmark_repeats": 8
     },
     {
-      "family": "random",
-      "seeds": [103],
-      "lengths": [32768],
+      "family": "sana",
+      "layer": 2,
+      "head": 7,
+      "spatial": 64,
+      "seeds": [607],
+      "lengths": [4096],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 6
+      "noise": 0.0,
+      "benchmark_repeats": 8
     },
     {
-      "family": "random",
-      "seeds": [107],
-      "lengths": [65536],
+      "family": "sana",
+      "layer": 6,
+      "head": 13,
+      "spatial": 64,
+      "seeds": [613],
+      "lengths": [4096],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 4
+      "noise": 0.0,
+      "benchmark_repeats": 8
     },
     {
-      "family": "random",
-      "seeds": [109],
-      "lengths": [131072],
+      "family": "sana",
+      "layer": 12,
+      "head": 23,
+      "spatial": 64,
+      "seeds": [617],
+      "lengths": [4096],
       "betas": [1.03643339, 1.28155157],
       "dimension": 64,
       "block_size": 64,
-      "noise": 0.35,
-      "benchmark_repeats": 3
+      "noise": 0.0,
+      "benchmark_repeats": 8
     }
   ]
 }
